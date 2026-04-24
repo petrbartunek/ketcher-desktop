@@ -1,0 +1,98 @@
+# Build native installers for macOS (Apple Silicon + Intel), Windows,
+# and Linux whenever a version tag is pushed, then attach the artifacts
+# to a draft GitHub Release. Triggered manually via "workflow_dispatch"
+# too, so you can produce a set of installers off any branch without
+# cutting a release.
+#
+# Why three runners? electron-builder must run on the same OS family
+# it's producing artifacts for: macOS runner for .dmg (and for access
+# to the Xcode code-signing toolchain), Windows runner for .exe, Linux
+# runner for .AppImage. Trying to cross-build Windows from macOS works
+# only with Wine, and cross-building macOS from anywhere else doesn't
+# work at all.
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest        # Apple Silicon runner; cross-builds
+            platform: mac           # both arm64 and x64 DMGs from one job
+            arch_flags: '--arm64 --x64'
+          - os: windows-latest
+            platform: win
+            arch_flags: '--x64'
+          - os: ubuntu-latest
+            platform: linux
+            arch_flags: '--x64'
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build renderer
+        run: npm run build:renderer
+
+      - name: Package installers
+        run: npx electron-builder --${{ matrix.platform }} ${{ matrix.arch_flags }} --publish never
+        env:
+          # Code-signing env vars; set these as GitHub secrets once you
+          # have certificates. Unset → electron-builder produces unsigned
+          # artifacts (fine for internal distribution).
+          #
+          # macOS:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+          # Windows:
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ketcher-desktop-${{ matrix.platform }}
+          path: |
+            release/*.dmg
+            release/*.exe
+            release/*.AppImage
+            release/*.blockmap
+          if-no-files-found: ignore
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          generate_release_notes: true
+          files: artifacts/**/*
