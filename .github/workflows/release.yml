@@ -54,19 +54,27 @@ jobs:
       - name: Package installers
         run: npx electron-builder --${{ matrix.platform }} ${{ matrix.arch_flags }} --publish never
         env:
-          # Code-signing env vars; set these as GitHub secrets once you
-          # have certificates. Unset → electron-builder produces unsigned
-          # artifacts (fine for internal distribution).
+          # Tell electron-builder not to auto-discover a code-signing
+          # identity. Without this, empty-string CSC_LINK/CSC_KEY_PASSWORD
+          # (which is what GitHub Actions produces when the secret isn't
+          # defined) confuses it into "signing mode" and the build dies
+          # on macOS with "$WORKSPACE not a file". Our afterPack hook
+          # still does ad-hoc signing so the arm64 DMG can actually run.
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          # When real certs are configured as secrets, uncomment the
+          # matching block below (and remove/override CSC_IDENTITY_AUTO_DISCOVERY)
+          # so electron-builder's full signing + notarization pipeline kicks in.
           #
-          # macOS:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
-          # Windows:
-          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
-          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+          # macOS (Apple Developer ID + notarization):
+          # APPLE_ID: ${{ secrets.APPLE_ID }}
+          # APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          # APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+          # CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+          #
+          # Windows code-signing cert:
+          # WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          # WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
