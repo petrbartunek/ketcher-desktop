@@ -82,6 +82,31 @@ so M-series and Intel Macs each get a native binary. If everyone at
 the lab is on M-series, drop `"x64"` from `build.mac.target[0].arch`
 to halve the build time.
 
+### First launch on macOS
+
+The signed releases on GitHub are ad-hoc-signed but **not notarized by
+Apple** (notarization requires a $99/year Apple Developer ID), so the
+first time you open the app macOS will refuse with:
+
+> "Ketcher Desktop.app" Not Opened — Apple could not verify "Ketcher
+> Desktop.app" is free of malware…
+
+This is Gatekeeper, not a real problem with the app. To allow it:
+
+1. Click **Done** on the dialog (do *not* click "Move to Bin").
+2. Open **System Settings → Privacy & Security**.
+3. Scroll down to the banner that says *"Ketcher Desktop.app was
+   blocked…"* and click **Open Anyway**, then confirm with your Mac
+   password.
+
+After that, double-clicking the app launches normally — you only need
+to do this once per install. As an alternative, running
+`xattr -cr "/Applications/Ketcher Desktop.app"` in a terminal strips
+the quarantine attribute in one shot and the app opens with a plain
+double-click from then on.
+
+Windows and Linux installers don't need any equivalent override.
+
 ---
 
 ## File menu
