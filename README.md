@@ -1,15 +1,24 @@
 # Ketcher Desktop
 
-A desktop chemical structure editor built by wrapping EPAM's
-[Ketcher](https://github.com/epam/ketcher) in an Electron shell, with
-extra workflows for embedding structures into Microsoft Word as
-clickable ChemDraw OLE objects.
+**The main reason to use Ketcher Desktop rather than the web version is
+the built-in compound catalog.** One click on **File → Append to Excel
+catalog** adds a row — rendered structure image, SMILES, molecular
+formula, InChI, InChIKey, and a PubChem similarity-search link — to an
+`.xlsx` file you keep on disk. Click a SMILES cell later and the
+structure re-opens in Ketcher Desktop for editing. It turns day-to-day
+structure drawing into a searchable, shareable lab-notebook database
+with no database server and no extra tooling (see
+[Building an Excel catalog of structures](#building-an-excel-catalog-of-structures)
+below for details).
 
-You get the real Ketcher UI — atom and bond tools, ring templates
-(benzene, cyclohexane, cyclopentane, and the full template library),
+Under the hood the app wraps EPAM's
+[Ketcher](https://github.com/epam/ketcher) in an Electron shell, so you
+get the real Ketcher UI — atom and bond tools, ring templates (benzene,
+cyclohexane, cyclopentane, and the full template library),
 stereochemistry, SMILES / MOL / SDF / RXN / InChI / CDXML / CDX import
-and export — plus a File menu that reads and writes files on your
-disk and can generate Word documents.
+and export — plus a File menu that reads and writes files on your disk
+and can generate Microsoft Word documents with embedded, editable
+ChemDraw OLE objects.
 
 Ketcher itself runs entirely in the renderer via `ketcher-standalone`
 (an Indigo WebAssembly bundle), so there is no server and no network
